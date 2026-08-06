@@ -76,11 +76,16 @@ export async function handleReport(req: Request, res: Response) {
       });
     });
     
-    issues = result.map((x) => ({
-      name: `${x.iid} ${projectDict[x.project] || ''} ${x.title}`,
-      status: statusDict[x.status],
-      time: convertToHours(x.timeStats),
-    }));
+    issues = result.map((x) => {
+      const title = x.title.trim();
+      const normalizedTitle = title.endsWith('.') ? title : `${title}.`;
+
+      return {
+        name: `${x.iid} ${projectDict[x.project] || ''} ${normalizedTitle}`,
+        status: statusDict[x.status],
+        time: convertToHours(x.timeStats),
+      };
+    });
 
     exportToCsv(filename, issues);
   } catch (error) {
