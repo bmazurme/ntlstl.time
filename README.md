@@ -2,7 +2,7 @@
 
 Веб-приложение для учёта рабочего времени: календарь с праздниками и отгулами, помесячная статистика рабочих дней/часов, отчёт по задачам GitLab с экспортом в CSV.
 
-* **Репозиторий:** [github.com/bmazurme/reports](https://github.com/bmazurme/reports)
+* **Репозиторий:** [github.com/bmazurme/ntlstl.time](https://github.com/bmazurme/ntlstl.time)
 
 ## Tech Stack
 
