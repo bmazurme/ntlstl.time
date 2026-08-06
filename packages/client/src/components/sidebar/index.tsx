@@ -1,6 +1,6 @@
 import { Select, Text, Button, Icon } from '@gravity-ui/uikit';
 import {
-  House, Calendar as CalendarIcon, Gear, Moon, Sun, ChevronsLeft, ChevronsRight,
+  House, Calendar as CalendarIcon, Gear, Moon, Sun, ChevronsLeft, ChevronsRight, Xmark,
 } from '@gravity-ui/icons';
 import { Link, useLocation } from 'react-router-dom';
 import type { MonthKeyType } from '@reports/shared';
@@ -19,7 +19,7 @@ const links = [
   { to: '/settings', label: 'Settings', icon: Gear },
 ];
 
-function Sidebar() {
+function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const dispatch = useAppDispatch();
   const state = useAppSelector(reportSelector);
   const { pathname } = useLocation();
@@ -35,6 +35,17 @@ function Sidebar() {
           <Text variant="subheader-2">ntlstl.time</Text>
           <Text variant="caption-2" color="secondary">Time tracking</Text>
         </div>
+        {onNavigate && (
+          <Button
+            view="flat"
+            size="m"
+            onClick={onNavigate}
+            className={style.closeButton}
+            title="Закрыть"
+          >
+            <Icon data={Xmark} size={16} />
+          </Button>
+        )}
       </div>
       <div className={style.pad}>
         <nav className={style.nav}>
@@ -48,6 +59,7 @@ function Sidebar() {
               to={to}
               className={style.navButton}
               title={label}
+              onClick={onNavigate}
             >
               <Icon data={icon} size={16} />
               <span className={`${style.label} ${collapsed ? style.hidden : ''}`}>{label}</span>
