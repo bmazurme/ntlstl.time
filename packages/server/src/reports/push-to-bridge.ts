@@ -1,5 +1,6 @@
 import type { BridgeReportEntry } from '@reports/shared';
 
+import { describeFetchError } from '../utils/describe-fetch-error';
 import { getSettings } from '../settings/props';
 
 export async function pushReportToBridge(year: number, month: number, entries: BridgeReportEntry[]) {
@@ -10,14 +11,17 @@ export async function pushReportToBridge(year: number, month: number, entries: B
   }
 
   const { origin } = new URL(bridgeApiUrl);
+  const url = `${origin}/api/v1/time/import/reports`;
 
-  const response = await fetch(`${origin}/api/v1/time/import/reports`, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'X-Api-Key': bridgeApiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ year, month, entries }),
+  }).catch((error) => {
+    throw describeFetchError(error, url);
   });
 
   if (!response.ok) {

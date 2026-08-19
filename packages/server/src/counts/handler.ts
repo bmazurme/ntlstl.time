@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { DayOffsImportType, StreamEvent } from '@reports/shared';
 
 import { countWorkAndShortDays } from '../utils/count-work-and-short-days';
+import { describeFetchError } from '../utils/describe-fetch-error';
 import { getSettings } from '../settings/props';
 import { getProps, addOffDays, removeOffDay, importDayOffs } from './props';
 
@@ -102,6 +103,8 @@ export async function handleImportDayOffs(req: Request, res: Response) {
 
     const bridgeResponse = await fetch(url, {
       headers: { 'X-Api-Key': bridgeApiKey },
+    }).catch((error) => {
+      throw describeFetchError(error, url);
     });
 
     if (!bridgeResponse.ok) {
