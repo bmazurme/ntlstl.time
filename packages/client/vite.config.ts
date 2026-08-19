@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   envPrefix: ['VITE_', 'EMPLOYEE', 'COMPANY'],
+  server: {
+    port: 5174,
+  },
 })

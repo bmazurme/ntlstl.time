@@ -8,7 +8,7 @@ import { handleGetSettings, handleSetSettings } from './settings/handler';
 import { handleGetProjectDict, handleAddProjectCode, handleRemoveProjectCode } from './reports/project-dict-handler';
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
@@ -27,6 +27,15 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to the Express + TypeScript Server!' });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`🚀 The server is running at http://localhost:${port}`);
+});
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Порт ${port} уже занят другим процессом. Задайте свободный порт через PORT в packages/server/.env и перезапустите.`);
+    process.exit(1);
+  }
+
+  throw err;
 });
