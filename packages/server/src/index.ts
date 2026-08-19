@@ -3,7 +3,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 
 import { handleCounts, handleAddOffDay, handleRemoveOffDay, handleImportDayOffs } from './counts/handler';
-import { handleReport } from './reports/handler';
+import { handleReport, handlePushReport } from './reports/handler';
 import { handleGetSettings, handleSetSettings } from './settings/handler';
 import { handleGetProjectDict, handleAddProjectCode, handleRemoveProjectCode } from './reports/project-dict-handler';
 
@@ -18,6 +18,7 @@ app.post('/api/counts/:id/off-days', handleAddOffDay);
 app.delete('/api/counts/:id/off-days/:date', handleRemoveOffDay);
 app.post('/api/counts/:id/import-day-offs', handleImportDayOffs);
 app.get('/api/reports', handleReport);
+app.post('/api/reports/push-to-bridge', handlePushReport);
 app.get('/api/settings', handleGetSettings);
 app.post('/api/settings', handleSetSettings);
 app.get('/api/project-dict', handleGetProjectDict);

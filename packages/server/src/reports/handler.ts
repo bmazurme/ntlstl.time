@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { IssueResponse, ResultType, StreamEvent } from '@reports/shared';
+import type { BridgeReportEntry, IssueResponse, ResultType, StreamEvent } from '@reports/shared';
 // import path from 'path';
 // import { fileURLToPath } from 'url';
 // import { dirname } from 'path';
@@ -10,6 +10,7 @@ import { convertToHours } from './convert-to-hours';
 import { statusDict } from './constants';
 import { buildName } from './build-name';
 import { mockReports } from './mock-data';
+import { pushReportToBridge } from './push-to-bridge';
 import { getSettings } from '../settings/props';
 import { getProjectDict } from './project-dict-props';
 
@@ -104,6 +105,35 @@ export async function handleReport(req: Request, res: Response) {
     res.end();
   } catch (error) {
     console.error('Counts error:', error);
+    sendEvent({
+      type: 'error',
+      data: error instanceof Error ? error.message : 'Unknown error',
+    });
+    res.end();
+  }
+}
+
+export async function handlePushReport(req: Request, res: Response) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  const sendEvent = (event: StreamEvent) => {
+    res.write(JSON.stringify(event) + '\n');
+  };
+
+  try {
+    const { year, month, entries } = req.body as { year: number; month: number; entries: BridgeReportEntry[] };
+
+    if (!Array.isArray(entries) || entries.length === 0) {
+      throw new Error('Нет данных для отправки: в отчёте нет задач с затраченным временем');
+    }
+
+    const result = await pushReportToBridge(year, month, entries);
+
+    sendEvent({ type: 'message', data: result });
+    res.end();
+  } catch (error) {
+    console.error('Push report to bridge error:', error);
     sendEvent({
       type: 'error',
       data: error instanceof Error ? error.message : 'Unknown error',

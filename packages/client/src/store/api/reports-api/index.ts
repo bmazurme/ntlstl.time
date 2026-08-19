@@ -1,5 +1,5 @@
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
-import type { DateType, ProjectDictType, ReportType, SettingsType, StreamEvent } from '@reports/shared';
+import type { DateType, ProjectDictType, PushReportPayload, ReportType, SettingsType, StreamEvent } from '@reports/shared';
 
 import baseQuery from '../../base-query';
 
@@ -51,6 +51,20 @@ const reportsApi = createApi({
       },
       invalidatesTags: ['Counts'],
     }),
+    pushReportToBridge: builder.mutation<unknown, PushReportPayload>({
+      query: (payload) => ({
+        url: 'reports/push-to-bridge',
+        method: 'POST',
+        body: payload,
+      }),
+      transformResponse: (response: StreamEvent) => {
+        if (response.type === 'error') {
+          throw new Error(typeof response.data === 'string' ? response.data : 'Push failed');
+        }
+
+        return response.data;
+      },
+    }),
     getSettings: builder.query<SettingsType, void>({
       query: () => 'settings',
       transformResponse: (response: StreamEvent) => response.data as SettingsType,
@@ -96,6 +110,7 @@ export const {
   useAddOffDaysMutation,
   useRemoveOffDayMutation,
   useImportDayOffsMutation,
+  usePushReportToBridgeMutation,
   useGetSettingsQuery,
   useSetSettingsMutation,
   useGetProjectDictQuery,

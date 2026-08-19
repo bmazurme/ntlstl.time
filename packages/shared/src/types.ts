@@ -52,6 +52,18 @@ export type DayOffsImportType = {
   badDays: string[];
 };
 
+export type BridgeReportEntry = {
+  taskName: string;
+  status: string;
+  hours: number;
+};
+
+export type PushReportPayload = {
+  year: number;
+  month: number;
+  entries: BridgeReportEntry[];
+};
+
 export type ProjectDictType = Record<string, string>;
 
 export type UserType = {
