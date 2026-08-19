@@ -37,6 +37,20 @@ const reportsApi = createApi({
       transformResponse: (response: StreamEvent) => response.data as DateType,
       invalidatesTags: ['Counts'],
     }),
+    importDayOffs: builder.mutation<DateType, string>({
+      query: (year) => ({
+        url: `counts/${year}/import-day-offs`,
+        method: 'POST',
+      }),
+      transformResponse: (response: StreamEvent) => {
+        if (response.type === 'error') {
+          throw new Error(typeof response.data === 'string' ? response.data : 'Import failed');
+        }
+
+        return response.data as DateType;
+      },
+      invalidatesTags: ['Counts'],
+    }),
     getSettings: builder.query<SettingsType, void>({
       query: () => 'settings',
       transformResponse: (response: StreamEvent) => response.data as SettingsType,
@@ -81,6 +95,7 @@ export const {
   useGetReportsQuery,
   useAddOffDaysMutation,
   useRemoveOffDayMutation,
+  useImportDayOffsMutation,
   useGetSettingsQuery,
   useSetSettingsMutation,
   useGetProjectDictQuery,

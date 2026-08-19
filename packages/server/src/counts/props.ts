@@ -36,6 +36,26 @@ export const addOffDays = (year: number | string | string[], dates: string[]): Y
   return yearProps;
 };
 
+export const importDayOffs = (year: number | string | string[], imported: YearProps): YearProps => {
+  const props = readProps();
+  const key = String(year);
+  const existing = props[key] ?? { holidays: [], shortDays: [], badDays: [], offDays: [] };
+
+  const merge = (a: string[], b: string[]) => [...new Set([...a, ...b])].sort();
+
+  const yearProps: YearProps = {
+    holidays: merge(existing.holidays, imported.holidays),
+    shortDays: merge(existing.shortDays, imported.shortDays),
+    badDays: merge(existing.badDays, imported.badDays),
+    offDays: merge(existing.offDays, imported.offDays),
+  };
+
+  props[key] = yearProps;
+  writeFileSync(propsPath, JSON.stringify(props, null, 2) + '\n');
+
+  return yearProps;
+};
+
 export const removeOffDay = (year: number | string | string[], date: string | string[]): YearProps => {
   const props = readProps();
   const yearProps = props[String(year)];

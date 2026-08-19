@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import type { SettingsType } from '@reports/shared';
@@ -6,8 +6,22 @@ import type { SettingsType } from '@reports/shared';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const settingsPath = join(__dirname, 'settings.json');
 
+const defaultSettings: SettingsType = {
+  gitlabUrl: '',
+  privateToken: '',
+  userId: '',
+  employee: '',
+  company: '',
+  bridgeApiUrl: '',
+  bridgeApiKey: '',
+};
+
 export const getSettings = (): SettingsType => {
-  return JSON.parse(readFileSync(settingsPath, 'utf-8'));
+  if (!existsSync(settingsPath)) {
+    return defaultSettings;
+  }
+
+  return { ...defaultSettings, ...JSON.parse(readFileSync(settingsPath, 'utf-8')) };
 };
 
 export const setSettings = (settings: SettingsType): SettingsType => {

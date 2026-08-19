@@ -5,12 +5,12 @@ import {
   Button, Dialog, DialogHeader, DialogBody, DialogFooter, Text, Icon,
   TabProvider, TabList, Tab, TabPanel,
 } from '@gravity-ui/uikit';
-import { Plus, TrashBin, CalendarXmark } from '@gravity-ui/icons';
+import { Plus, TrashBin, CalendarXmark, ArrowDownToLine } from '@gravity-ui/icons';
 import { RangeDatePicker, type RangeValue } from '@gravity-ui/date-components';
 import { DateTime, dateTimeParse } from '@gravity-ui/date-utils';
 import { DateType } from '@reports/shared';
 
-import { useAddOffDaysMutation, useRemoveOffDayMutation } from '../../store/api';
+import { useAddOffDaysMutation, useRemoveOffDayMutation, useImportDayOffsMutation } from '../../store/api';
 
 import CalendarMonth from './calendar-month';
 import style from './calendar.module.css';
@@ -53,10 +53,12 @@ const groupByMonth = (dates: string[]) => {
 function MyCalendar({ data, year }: { data: DateType; year: string }) {
   const [addOffDays] = useAddOffDaysMutation();
   const [removeOffDay] = useRemoveOffDayMutation();
+  const [importDayOffsRequest, { isLoading: isImporting }] = useImportDayOffsMutation();
   const [activeTab, setActiveTab] = useState<string>(TABS.calendar);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<RangeValue<DateTime> | null>(null);
   const [dayToRemove, setDayToRemove] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const offDays = data.offDays;
   const groupedOffDays = useMemo(() => groupByMonth(offDays), [offDays]);
@@ -109,6 +111,21 @@ function MyCalendar({ data, year }: { data: DateType; year: string }) {
     }
 
     setDayToRemove(null);
+  };
+
+  const handleImport = async () => {
+    setImportStatus(null);
+
+    try {
+      await importDayOffsRequest(year).unwrap();
+      setImportStatus({ type: 'success', message: 'Данные импортированы из bridge' });
+    } catch (error) {
+      const message = error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string'
+        ? (error as { message: string }).message
+        : 'Не удалось импортировать данные';
+
+      setImportStatus({ type: 'error', message });
+    }
   };
 
   return <div className={style.page}>
@@ -164,10 +181,23 @@ function MyCalendar({ data, year }: { data: DateType; year: string }) {
             <Icon data={Plus} size={16} />
             Add day off
           </Button>
+          <Button view="normal" size="m" onClick={handleImport} loading={isImporting}>
+            <Icon data={ArrowDownToLine} size={16} />
+            Import
+          </Button>
           <Text variant="body-2" color="secondary">
             Всего: {offDays.length}
           </Text>
         </div>
+        {importStatus && (
+          <Text
+            variant="body-2"
+            color={importStatus.type === 'error' ? 'danger' : 'positive'}
+            className={style.importStatus}
+          >
+            {importStatus.message}
+          </Text>
+        )}
         {offDays.length === 0 ? (
           <div className={style.emptyState}>
             <Icon data={CalendarXmark} size={28} />

@@ -29,6 +29,10 @@
 .addRow button {
   gap: 6px;
 }
+.importStatus {
+  display: block;
+  margin: -12px 0 20px;
+}
 .monthGroup {
   margin-bottom: 20px;
 }

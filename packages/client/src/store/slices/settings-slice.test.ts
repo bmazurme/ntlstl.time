@@ -14,6 +14,8 @@ describe('settings slice', () => {
       userId: '',
       employee: '',
       company: '',
+      bridgeApiUrl: '',
+      bridgeApiKey: '',
     });
   });
 
@@ -24,6 +26,8 @@ describe('settings slice', () => {
       userId: '1',
       employee: 'Иван Иванов',
       company: 'ACME',
+      bridgeApiUrl: 'http://localhost:3002/api/v1/time/export/day-offs',
+      bridgeApiKey: 'dev-key',
     };
 
     const state = settingsReducer(initialStateSettings, setSettings(next));

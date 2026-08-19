@@ -40,6 +40,16 @@ export type SettingsType = {
   userId: string;
   employee: string;
   company: string;
+  bridgeApiUrl: string;
+  bridgeApiKey: string;
+};
+
+export type DayOffsImportType = {
+  year: number;
+  holidays: string[];
+  shortDays: string[];
+  offDays: string[];
+  badDays: string[];
 };
 
 export type ProjectDictType = Record<string, string>;

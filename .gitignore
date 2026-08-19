@@ -26,3 +26,4 @@ dist-ssr
 
 .env
 /packages/tmp
+/packages/server/src/settings/settings.json

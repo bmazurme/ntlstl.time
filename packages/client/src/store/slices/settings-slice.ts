@@ -8,6 +8,8 @@ export interface SettingsState {
   userId: string;
   employee: string;
   company: string;
+  bridgeApiUrl: string;
+  bridgeApiKey: string;
 }
 
 const STORAGE_KEY = 'settings';
@@ -18,6 +20,8 @@ const initialSettings: SettingsState = {
   userId: '',
   employee: '',
   company: '',
+  bridgeApiUrl: '',
+  bridgeApiKey: '',
 };
 
 const loadState = (): SettingsState => {

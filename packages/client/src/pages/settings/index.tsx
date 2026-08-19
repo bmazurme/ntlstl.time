@@ -12,8 +12,15 @@ function Settings() {
   const dispatch = useAppDispatch();
   const settings = useAppSelector(settingsSelector);
   const [form, setForm] = useState<SettingsState>(settings);
+  const [syncedSettings, setSyncedSettings] = useState(settings);
   const [showToken, setShowToken] = useState(false);
+  const [showBridgeKey, setShowBridgeKey] = useState(false);
   const [setSettingsRequest] = useSetSettingsMutation();
+
+  if (settings !== syncedSettings) {
+    setSyncedSettings(settings);
+    setForm(settings);
+  }
 
   const { data: projectDict = {} } = useGetProjectDictQuery();
   const [addProjectCode] = useAddProjectCodeMutation();
@@ -95,6 +102,30 @@ function Settings() {
           placeholder="Название компании"
           value={form.company}
           onUpdate={handleChange('company')}
+        />
+      </div>
+      <div className={style.group}>
+        <TextInput
+          label="Bridge API URL"
+          placeholder="http://localhost:3002/api/v1/time/export/day-offs"
+          value={form.bridgeApiUrl}
+          onUpdate={handleChange('bridgeApiUrl')}
+        />
+        <TextInput
+          label="Bridge API key"
+          type={showBridgeKey ? 'text' : 'password'}
+          value={form.bridgeApiKey}
+          onUpdate={handleChange('bridgeApiKey')}
+          endContent={(
+            <Button
+              view="flat"
+              size="s"
+              onClick={() => setShowBridgeKey((prev) => !prev)}
+              title={showBridgeKey ? 'Hide' : 'Show'}
+            >
+              <Icon data={showBridgeKey ? EyeSlash : Eye} size={16} />
+            </Button>
+          )}
         />
       </div>
       <Button view="action" size="l" type="submit" width="max">

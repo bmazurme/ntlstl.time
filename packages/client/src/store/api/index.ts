@@ -4,6 +4,7 @@ export {
   useGetReportsQuery,
   useAddOffDaysMutation,
   useRemoveOffDayMutation,
+  useImportDayOffsMutation,
   useGetSettingsQuery,
   useSetSettingsMutation,
   useGetProjectDictQuery,
