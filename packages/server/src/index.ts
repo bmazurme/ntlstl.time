@@ -6,6 +6,9 @@ import { handleCounts, handleAddOffDay, handleRemoveOffDay, handleImportDayOffs 
 import { handleReport, handlePushReport } from './reports/handler';
 import { handleGetSettings, handleSetSettings } from './settings/handler';
 import { handleGetProjectDict, handleAddProjectCode, handleRemoveProjectCode } from './reports/project-dict-handler';
+import { setupProxy } from './utils/setup-proxy';
+
+setupProxy();
 
 const app = express();
 const port = process.env.PORT || 4000;
