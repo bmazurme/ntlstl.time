@@ -10,7 +10,7 @@
 }
 
 .collapsed {
-  width: 64px;
+  width: 68px;
 }
 
 .workspace {
@@ -65,22 +65,20 @@
   margin-left: auto;
 }
 
-.pad {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-}
-
 .nav {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 4px;
+  padding: 12px;
+  overflow-y: auto;
 }
 
 .navButton {
   justify-content: flex-start;
+}
+
+.navButtonActive {
+  font-weight: 600;
 }
 
 .collapsed .navButton {
@@ -104,39 +102,24 @@
   opacity: 0;
 }
 
-.select {
-  width: 100%;
-}
-
-.selects {
+.footer {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 200px;
-  opacity: 1;
-  overflow: hidden;
-  transition: opacity 0.2s ease, max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.selects.hidden {
-  max-height: 0;
-  opacity: 0;
-}
-
-.footer {
+  gap: 4px;
   margin-top: auto;
   padding: 12px;
   border-top: 1px solid var(--g-color-line-generic);
 }
 
 .collapseBar {
-  padding: 12px;
+  padding-top: 4px;
   border-top: 1px solid var(--g-color-line-generic);
 }
 
 @media (max-width: 768px) {
+  .sidebar,
   .sidebar.collapsed {
-    width: 260px;
+    width: 100%;
   }
 
   .collapsed .workspace {
@@ -158,11 +141,6 @@
   .collapsed .label {
     max-width: 160px;
     margin-left: 8px;
-    opacity: 1;
-  }
-
-  .collapsed .selects {
-    max-height: 200px;
     opacity: 1;
   }
 

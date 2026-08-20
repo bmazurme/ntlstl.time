@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import type { MonthKeyType } from '@reports/shared';
 
 import type { RowData } from '../hocs/with-table-sorting';
@@ -35,7 +35,9 @@ type ExportReportParams = {
 };
 
 export async function exportReport({ report, month, year, employee, company, offDays }: ExportReportParams) {
-  const workbook = new ExcelJS.Workbook();
+  // Loaded on demand — exceljs is ~1 MB and only needed when the user exports
+  const { default: ExcelJSRuntime } = await import('exceljs');
+  const workbook = new ExcelJSRuntime.Workbook();
   const sheet = workbook.addWorksheet('Лист1');
 
   sheet.columns = [

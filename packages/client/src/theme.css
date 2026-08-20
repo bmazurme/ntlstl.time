@@ -97,3 +97,34 @@
     --g-color-base-selection-hover: var(--g-color-private-brand-200);
     --g-color-line-brand: var(--g-color-private-brand-600-solid);
 }
+
+/* Application-level tokens shared by page layouts */
+.g-root {
+    --app-page-gap: 20px;
+    --app-card-radius: 12px;
+    --app-transition: 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 768px) {
+    .g-root {
+        --app-page-gap: 14px;
+    }
+}
+
+/* Respect the OS "reduce motion" setting across every custom transition */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Visible keyboard focus for the custom (non-uikit) interactive elements */
+.g-root :focus-visible {
+    outline: 2px solid var(--g-color-line-focus, var(--g-color-line-brand));
+    outline-offset: 2px;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, Button } from '@gravity-ui/uikit';
+import { Button, Icon, Text, Tooltip, useToaster } from '@gravity-ui/uikit';
+import { ArrowsRotateLeft, FileArrowDown, ListCheck, PaperPlane } from '@gravity-ui/icons';
 import type { MonthKeyType } from '@reports/shared';
 
 import { columns } from '../../constants';
@@ -8,31 +9,57 @@ import { reportSelector, settingsSelector } from '../../store';
 import { useGetCountsQuery, useGetReportsQuery, usePushReportToBridgeMutation } from '../../store/api';
 import { useAppSelector } from '../../hooks';
 import { exportReport } from '../../utils/export-report';
+import { describeError } from '../../utils/describe-error';
+import { EmptyState } from '../state';
 
-import style from '../../app.module.css';
 import reportStyle from './report.module.css';
 
+const hoursFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+
 function Report({ report, offDays }: { report: RowData[]; offDays: number }) {
+  const toaster = useToaster();
   const { month, year } = useAppSelector(reportSelector);
   const { employee, company } = useAppSelector(settingsSelector);
-  const { refetch: refetchCounts } = useGetCountsQuery(year);
-  const { refetch: refetchReports } = useGetReportsQuery();
+  const { refetch: refetchCounts, isFetching: isCountsFetching } = useGetCountsQuery(year);
+  const { refetch: refetchReports, isFetching: isReportsFetching } = useGetReportsQuery();
   const [pushReportToBridge, { isLoading: isPushing }] = usePushReportToBridgeMutation();
-  const [pushStatus, setPushStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const entriesToSend = report
-    .filter((item) => item.time > 0)
-    .map((item) => ({ taskName: item.name, status: item.status, hours: item.time }));
+  const isRefreshing = isCountsFetching || isReportsFetching;
+  const trackedRows = report.filter((item) => item.time > 0);
+  const trackedHours = trackedRows.reduce((sum, item) => sum + item.time, 0);
+  const entriesToSend = trackedRows.map((item) => ({ taskName: item.name, status: item.status, hours: item.time }));
 
-  const handleExport = () => {
-    exportReport({
-      report,
-      month: month as MonthKeyType,
-      year,
-      employee,
-      company,
-      offDays,
-    });
+  const handleExport = async () => {
+    setIsExporting(true);
+
+    try {
+      await exportReport({
+        report,
+        month: month as MonthKeyType,
+        year,
+        employee,
+        company,
+        offDays,
+      });
+      toaster.add({
+        name: 'export-success',
+        theme: 'success',
+        title: 'Файл выгружен',
+        content: 'Excel-отчёт сохранён в загрузки',
+        autoHiding: 4000,
+      });
+    } catch (error) {
+      toaster.add({
+        name: 'export-error',
+        theme: 'danger',
+        title: 'Не удалось выгрузить файл',
+        content: describeError(error),
+        isClosable: true,
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleRefresh = () => {
@@ -41,8 +68,6 @@ function Report({ report, offDays }: { report: RowData[]; offDays: number }) {
   };
 
   const handlePush = async () => {
-    setPushStatus(null);
-
     try {
       await pushReportToBridge({
         year: Number(year),
@@ -50,58 +75,96 @@ function Report({ report, offDays }: { report: RowData[]; offDays: number }) {
         entries: entriesToSend,
       }).unwrap();
 
-      setPushStatus({ type: 'success', message: 'Отчёт отправлен в bridge' });
+      toaster.add({
+        name: 'push-success',
+        theme: 'success',
+        title: 'Отчёт отправлен',
+        content: `Передано задач: ${entriesToSend.length}`,
+        autoHiding: 4000,
+      });
     } catch (error) {
-      const message = error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string'
-        ? (error as { message: string }).message
-        : 'Не удалось отправить отчёт';
-
-      setPushStatus({ type: 'error', message });
+      toaster.add({
+        name: 'push-error',
+        theme: 'danger',
+        title: 'Не удалось отправить отчёт',
+        content: describeError(error, 'Проверьте Bridge API в настройках'),
+        isClosable: true,
+      });
     }
   };
 
   return (
-    <div className={style.report}>
+    <section className={reportStyle.report} aria-label="Задачи за месяц">
       <div className={reportStyle.header}>
-        <Text variant="header-2">Report</Text>
+        <div className={reportStyle.titleBox}>
+          <Text variant="header-1">Задачи</Text>
+          <Text variant="body-1" color="secondary">
+            {report.length === 0
+              ? 'Нет данных'
+              : `${report.length} шт. · ${hoursFormatter.format(trackedHours)} ч списано`}
+          </Text>
+        </div>
         <div className={reportStyle.actions}>
-          <Button view="normal" size="m" onClick={handleRefresh}>
-            Refresh data
-          </Button>
-          <Button view="normal" size="m" onClick={handleExport}>
-            Export
+          <Button view="outlined" size="m" onClick={handleRefresh} loading={isRefreshing}>
+            <Icon data={ArrowsRotateLeft} size={16} />
+            Обновить
           </Button>
           <Button
-            view="action"
+            view="outlined"
             size="m"
-            onClick={handlePush}
-            loading={isPushing}
-            disabled={entriesToSend.length === 0}
-            title={entriesToSend.length === 0 ? 'Нет задач с затраченным временем' : undefined}
+            onClick={handleExport}
+            loading={isExporting}
+            disabled={trackedRows.length === 0}
           >
-            Send
+            <Icon data={FileArrowDown} size={16} />
+            Excel
           </Button>
+          <Tooltip
+            content={entriesToSend.length === 0 ? 'Нет задач с затраченным временем' : 'Отправить отчёт в bridge'}
+          >
+            <Button
+              view="action"
+              size="m"
+              onClick={handlePush}
+              loading={isPushing}
+              disabled={entriesToSend.length === 0}
+            >
+              <Icon data={PaperPlane} size={16} />
+              Отправить
+            </Button>
+          </Tooltip>
         </div>
       </div>
-      {pushStatus && (
-        <Text
-          variant="body-2"
-          color={pushStatus.type === 'error' ? 'danger' : 'positive'}
-          className={reportStyle.pushStatus}
-        >
-          {pushStatus.message}
-        </Text>
-      )}
-      <div className={reportStyle.card}>
-        <MyTable
-          data={report}
-          columns={columns}
-          width="max"
-          verticalAlign="middle"
-          edgePadding
+      {report.length === 0 ? (
+        <EmptyState
+          icon={<Icon data={ListCheck} size={28} />}
+          title="Задач за период нет"
+          description="Проверьте настройки GitLab или обновите данные."
+          action={(
+            <Button view="outlined" size="m" onClick={handleRefresh} loading={isRefreshing}>
+              <Icon data={ArrowsRotateLeft} size={16} />
+              Обновить
+            </Button>
+          )}
         />
-      </div>
-    </div>
+      ) : (
+        <div className={reportStyle.card}>
+          <MyTable
+            data={report}
+            columns={columns}
+            width="max"
+            verticalAlign="middle"
+            edgePadding
+          />
+          <div className={reportStyle.summary}>
+            <Text variant="body-2" color="secondary">Итого</Text>
+            <Text variant="subheader-1" className={reportStyle.summaryValue}>
+              {hoursFormatter.format(trackedHours)} ч
+            </Text>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 

@@ -5,6 +5,18 @@ import baseQuery from '../../base-query';
 
 export const baseQueryWithRetry = retry(baseQuery, { maxRetries: 0 });
 
+/**
+ * The API answers with HTTP 200 even for failures, marking them via `type: 'error'`.
+ * Throwing here turns them into regular RTK Query errors so the UI can show them.
+ */
+const unwrap = <T>(fallbackMessage: string) => (response: StreamEvent): T => {
+  if (response?.type === 'error') {
+    throw new Error(typeof response.data === 'string' ? response.data : fallbackMessage);
+  }
+
+  return response?.data as T;
+};
+
 const reportsApi = createApi({
   reducerPath: 'reportsApi',
   baseQuery: baseQueryWithRetry,
@@ -12,12 +24,12 @@ const reportsApi = createApi({
   endpoints: (builder) => ({
     getCounts: builder.query<DateType, string>({
       query: (year) => `counts/${year}`,
-      transformResponse: (response: StreamEvent) => response.data as DateType,
+      transformResponse: unwrap<DateType>('Не удалось загрузить производственный календарь'),
       providesTags: ['Counts'],
     }),
     getReports: builder.query<ReportType[], void>({
       query: () => 'reports',
-      transformResponse: (response: StreamEvent) => response.data as ReportType[],
+      transformResponse: unwrap<ReportType[]>('Не удалось загрузить задачи из GitLab'),
       providesTags: ['Reports'],
     }),
     addOffDays: builder.mutation<DateType, { year: string; dates: string[] }>({
@@ -26,7 +38,7 @@ const reportsApi = createApi({
         method: 'POST',
         body: { dates },
       }),
-      transformResponse: (response: StreamEvent) => response.data as DateType,
+      transformResponse: unwrap<DateType>('Не удалось добавить отгулы'),
       invalidatesTags: ['Counts'],
     }),
     removeOffDay: builder.mutation<DateType, { year: string; date: string }>({
@@ -34,7 +46,7 @@ const reportsApi = createApi({
         url: `counts/${year}/off-days/${date}`,
         method: 'DELETE',
       }),
-      transformResponse: (response: StreamEvent) => response.data as DateType,
+      transformResponse: unwrap<DateType>('Не удалось удалить отгул'),
       invalidatesTags: ['Counts'],
     }),
     importDayOffs: builder.mutation<DateType, string>({
@@ -42,13 +54,7 @@ const reportsApi = createApi({
         url: `counts/${year}/import-day-offs`,
         method: 'POST',
       }),
-      transformResponse: (response: StreamEvent) => {
-        if (response.type === 'error') {
-          throw new Error(typeof response.data === 'string' ? response.data : 'Import failed');
-        }
-
-        return response.data as DateType;
-      },
+      transformResponse: unwrap<DateType>('Не удалось импортировать данные'),
       invalidatesTags: ['Counts'],
     }),
     pushReportToBridge: builder.mutation<unknown, PushReportPayload>({
@@ -57,17 +63,11 @@ const reportsApi = createApi({
         method: 'POST',
         body: payload,
       }),
-      transformResponse: (response: StreamEvent) => {
-        if (response.type === 'error') {
-          throw new Error(typeof response.data === 'string' ? response.data : 'Push failed');
-        }
-
-        return response.data;
-      },
+      transformResponse: unwrap<unknown>('Не удалось отправить отчёт'),
     }),
     getSettings: builder.query<SettingsType, void>({
       query: () => 'settings',
-      transformResponse: (response: StreamEvent) => response.data as SettingsType,
+      transformResponse: unwrap<SettingsType>('Не удалось загрузить настройки'),
       providesTags: ['Settings'],
     }),
     setSettings: builder.mutation<SettingsType, SettingsType>({
@@ -76,12 +76,12 @@ const reportsApi = createApi({
         method: 'POST',
         body: settings,
       }),
-      transformResponse: (response: StreamEvent) => response.data as SettingsType,
+      transformResponse: unwrap<SettingsType>('Не удалось сохранить настройки'),
       invalidatesTags: ['Settings'],
     }),
     getProjectDict: builder.query<ProjectDictType, void>({
       query: () => 'project-dict',
-      transformResponse: (response: StreamEvent) => response.data as ProjectDictType,
+      transformResponse: unwrap<ProjectDictType>('Не удалось загрузить коды проектов'),
       providesTags: ['ProjectDict'],
     }),
     addProjectCode: builder.mutation<ProjectDictType, { code: string; label: string }>({
@@ -90,7 +90,7 @@ const reportsApi = createApi({
         method: 'POST',
         body,
       }),
-      transformResponse: (response: StreamEvent) => response.data as ProjectDictType,
+      transformResponse: unwrap<ProjectDictType>('Не удалось добавить код проекта'),
       invalidatesTags: ['ProjectDict'],
     }),
     removeProjectCode: builder.mutation<ProjectDictType, { code: string }>({
@@ -98,7 +98,7 @@ const reportsApi = createApi({
         url: `project-dict/${code}`,
         method: 'DELETE',
       }),
-      transformResponse: (response: StreamEvent) => response.data as ProjectDictType,
+      transformResponse: unwrap<ProjectDictType>('Не удалось удалить код проекта'),
       invalidatesTags: ['ProjectDict'],
     }),
   }),

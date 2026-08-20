@@ -1,25 +1,40 @@
+.report {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: var(--app-page-gap);
+}
+
 .header {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.titleBox {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.pushStatus {
-  display: block;
-  margin-top: 8px;
+.actions button {
+  gap: 6px;
 }
 
 .card {
-  margin-top: 12px;
   border: 1px solid var(--g-color-line-generic);
-  border-radius: 12px;
+  border-radius: var(--app-card-radius);
   overflow-x: auto;
   overflow-y: hidden;
   background-color: var(--g-color-base-background);
@@ -31,6 +46,9 @@
 }
 
 .card :global(.g-table__head .g-table__cell) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding-top: 10px;
   padding-bottom: 10px;
   font-size: 11px;
@@ -59,14 +77,25 @@
   color: var(--g-color-text-secondary);
 }
 
+.summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 480px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--g-color-line-generic);
+  background-color: var(--g-color-base-generic-ultralight);
+}
+
+.summaryValue {
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .actions {
-    justify-content: stretch;
   }
 
   .actions > * {

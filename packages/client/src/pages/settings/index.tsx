@@ -1,21 +1,29 @@
 import { useState, type FormEvent } from 'react';
-import { Button, TextInput, Text, Icon, Dialog, DialogHeader, DialogBody, DialogFooter } from '@gravity-ui/uikit';
-import { Eye, EyeSlash } from '@gravity-ui/icons';
+import {
+  Button, TextInput, Text, Icon, Dialog, DialogHeader, DialogBody, DialogFooter, useToaster,
+} from '@gravity-ui/uikit';
+import { Eye, EyeSlash, Plus, TrashBin } from '@gravity-ui/icons';
 
 import { settingsSelector, setSettings, type SettingsState } from '../../store';
 import { useSetSettingsMutation, useGetProjectDictQuery, useAddProjectCodeMutation, useRemoveProjectCodeMutation } from '../../store/api';
 import { useAppDispatch, useAppSelector } from '../../hooks';
+import { useDocumentTitle } from '../../hooks/use-document-title';
+import { describeError } from '../../utils/describe-error';
+import PageHeader from '../../components/page-header';
 
 import style from './settings.module.css';
 
 function Settings() {
   const dispatch = useAppDispatch();
+  const toaster = useToaster();
   const settings = useAppSelector(settingsSelector);
   const [form, setForm] = useState<SettingsState>(settings);
   const [syncedSettings, setSyncedSettings] = useState(settings);
   const [showToken, setShowToken] = useState(false);
   const [showBridgeKey, setShowBridgeKey] = useState(false);
-  const [setSettingsRequest] = useSetSettingsMutation();
+  const [setSettingsRequest, { isLoading: isSaving }] = useSetSettingsMutation();
+
+  useDocumentTitle('Настройки');
 
   if (settings !== syncedSettings) {
     setSyncedSettings(settings);
@@ -29,163 +37,293 @@ function Settings() {
   const [codeForm, setCodeForm] = useState({ code: '', label: '' });
   const [codeToRemove, setCodeToRemove] = useState<string | null>(null);
 
+  const codes = Object.entries(projectDict);
+  const isDirty = JSON.stringify(form) !== JSON.stringify(settings);
+  const isDuplicateCode = Boolean(codeForm.code) && codeForm.code in projectDict;
+
   const handleChange = (key: keyof SettingsState) => (value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const saved = await setSettingsRequest(form).unwrap();
-    dispatch(setSettings(saved));
+
+    try {
+      const saved = await setSettingsRequest(form).unwrap();
+
+      dispatch(setSettings(saved));
+      toaster.add({
+        name: 'settings-saved',
+        theme: 'success',
+        title: 'Настройки сохранены',
+        autoHiding: 3000,
+      });
+    } catch (error) {
+      toaster.add({
+        name: 'settings-save-error',
+        theme: 'danger',
+        title: 'Не удалось сохранить настройки',
+        content: describeError(error),
+        isClosable: true,
+      });
+    }
   };
 
-  const handleAddCode = () => {
-    if (codeForm.code && codeForm.label) {
-      addProjectCode(codeForm);
+  const handleAddCode = async () => {
+    if (!codeForm.code || !codeForm.label || isDuplicateCode) {
+      return;
     }
+
+    const payload = codeForm;
 
     setIsCodeDialogOpen(false);
     setCodeForm({ code: '', label: '' });
+
+    try {
+      await addProjectCode(payload).unwrap();
+    } catch (error) {
+      toaster.add({
+        name: 'code-add-error',
+        theme: 'danger',
+        title: 'Не удалось добавить код',
+        content: describeError(error),
+        isClosable: true,
+      });
+    }
   };
 
-  const handleRemoveCode = () => {
-    if (codeToRemove) {
-      removeProjectCode({ code: codeToRemove });
-    }
+  const handleRemoveCode = async () => {
+    const code = codeToRemove;
 
     setCodeToRemove(null);
+
+    if (!code) {
+      return;
+    }
+
+    try {
+      await removeProjectCode({ code }).unwrap();
+    } catch (error) {
+      toaster.add({
+        name: 'code-remove-error',
+        theme: 'danger',
+        title: 'Не удалось удалить код',
+        content: describeError(error),
+        isClosable: true,
+      });
+    }
   };
 
   return (
     <>
-    <div className={style.page}>
-    <form className={style.form} onSubmit={handleSubmit}>
-      <Text variant="header-2">Settings</Text>
-      <div className={style.group}>
-        <TextInput
-          label="GitLab URL"
-          placeholder="https://gitlab.com/api/v4"
-          value={form.gitlabUrl}
-          onUpdate={handleChange('gitlabUrl')}
+      <div className={style.wrapper}>
+        <PageHeader
+          title="Настройки"
+          description="Подключение к GitLab, реквизиты отчёта и интеграция с bridge"
         />
-        <TextInput
-          label="Private token"
-          type={showToken ? 'text' : 'password'}
-          value={form.privateToken}
-          onUpdate={handleChange('privateToken')}
-          endContent={(
+        <div className={style.page}>
+          <form className={style.form} onSubmit={handleSubmit}>
+            <section className={style.section}>
+              <div className={style.sectionHead}>
+                <Text variant="subheader-2">Подключение к GitLab</Text>
+                <Text variant="caption-2" color="secondary">
+                  Откуда берутся задачи и списанное время
+                </Text>
+              </div>
+              <div className={style.group}>
+                <TextInput
+                  label="GitLab URL"
+                  placeholder="https://gitlab.com/api/v4"
+                  value={form.gitlabUrl}
+                  onUpdate={handleChange('gitlabUrl')}
+                  autoComplete="off"
+                />
+                <TextInput
+                  label="Токен доступа"
+                  type={showToken ? 'text' : 'password'}
+                  value={form.privateToken}
+                  onUpdate={handleChange('privateToken')}
+                  autoComplete="off"
+                  note="Personal access token с правом read_api"
+                  endContent={(
+                    <Button
+                      view="flat"
+                      size="s"
+                      onClick={() => setShowToken((prev) => !prev)}
+                      aria-label={showToken ? 'Скрыть токен' : 'Показать токен'}
+                    >
+                      <Icon data={showToken ? EyeSlash : Eye} size={16} />
+                    </Button>
+                  )}
+                />
+              </div>
+            </section>
+
+            <section className={style.section}>
+              <div className={style.sectionHead}>
+                <Text variant="subheader-2">Реквизиты отчёта</Text>
+                <Text variant="caption-2" color="secondary">
+                  Подставляются в имя и шапку выгружаемого файла
+                </Text>
+              </div>
+              <div className={style.group}>
+                <TextInput
+                  label="ID пользователя"
+                  placeholder="123"
+                  value={form.userId}
+                  onUpdate={handleChange('userId')}
+                />
+                <TextInput
+                  label="Сотрудник"
+                  placeholder="Иванов И. И."
+                  value={form.employee}
+                  onUpdate={handleChange('employee')}
+                />
+                <TextInput
+                  label="Компания"
+                  placeholder="Название компании"
+                  value={form.company}
+                  onUpdate={handleChange('company')}
+                />
+              </div>
+            </section>
+
+            <section className={style.section}>
+              <div className={style.sectionHead}>
+                <Text variant="subheader-2">Интеграция с bridge</Text>
+                <Text variant="caption-2" color="secondary">
+                  Импорт отгулов и отправка готового отчёта
+                </Text>
+              </div>
+              <div className={style.group}>
+                <TextInput
+                  label="Bridge API URL"
+                  placeholder="http://localhost:3002/api/v1/time"
+                  value={form.bridgeApiUrl}
+                  onUpdate={handleChange('bridgeApiUrl')}
+                  autoComplete="off"
+                />
+                <TextInput
+                  label="Bridge API key"
+                  type={showBridgeKey ? 'text' : 'password'}
+                  value={form.bridgeApiKey}
+                  onUpdate={handleChange('bridgeApiKey')}
+                  autoComplete="off"
+                  endContent={(
+                    <Button
+                      view="flat"
+                      size="s"
+                      onClick={() => setShowBridgeKey((prev) => !prev)}
+                      aria-label={showBridgeKey ? 'Скрыть ключ' : 'Показать ключ'}
+                    >
+                      <Icon data={showBridgeKey ? EyeSlash : Eye} size={16} />
+                    </Button>
+                  )}
+                />
+              </div>
+            </section>
+
+            <div className={style.formActions}>
+              <Button view="action" size="l" type="submit" loading={isSaving} disabled={!isDirty}>
+                Сохранить
+              </Button>
+              {isDirty && (
+                <Button view="flat" size="l" type="button" onClick={() => setForm(settings)}>
+                  Отменить
+                </Button>
+              )}
+              <Text variant="caption-2" color="secondary" className={style.dirtyHint}>
+                {isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
+              </Text>
+            </div>
+          </form>
+
+          <section className={style.codes}>
+            <div className={style.sectionHead}>
+              <Text variant="subheader-2">Коды проектов</Text>
+              <Text variant="caption-2" color="secondary">
+                Сопоставление ID проекта GitLab с названием в отчёте
+              </Text>
+            </div>
+            {codes.length === 0 ? (
+              <Text variant="body-2" color="secondary" className={style.codesEmpty}>
+                Коды ещё не добавлены
+              </Text>
+            ) : (
+              <ul className={style.codesList}>
+                {codes.map(([code, label]) => (
+                  <li key={code} className={style.codesItem}>
+                    <span className={style.codesCode}>{code}</span>
+                    <span className={style.codesLabel}>{label}</span>
+                    <Button
+                      view="flat"
+                      size="s"
+                      onClick={() => setCodeToRemove(code)}
+                      aria-label={`Удалить код ${code}`}
+                      className={style.codesRemove}
+                    >
+                      <Icon data={TrashBin} size={16} />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button
-              view="flat"
-              size="s"
-              onClick={() => setShowToken((prev) => !prev)}
-              title={showToken ? 'Hide' : 'Show'}
+              view="outlined"
+              size="m"
+              width="max"
+              onClick={() => setIsCodeDialogOpen(true)}
+              className={style.codesAdd}
             >
-              <Icon data={showToken ? EyeSlash : Eye} size={16} />
+              <Icon data={Plus} size={16} />
+              Добавить код
             </Button>
-          )}
-        />
-      </div>
-      <div className={style.group}>
-        <TextInput
-          label="User ID"
-          value={form.userId}
-          onUpdate={handleChange('userId')}
-        />
-        <TextInput
-          label="Employee"
-          placeholder="Сотрудник"
-          value={form.employee}
-          onUpdate={handleChange('employee')}
-        />
-        <TextInput
-          label="Company"
-          placeholder="Название компании"
-          value={form.company}
-          onUpdate={handleChange('company')}
-        />
-      </div>
-      <div className={style.group}>
-        <TextInput
-          label="Bridge API URL"
-          placeholder="http://localhost:3002/api/v1/time/export/day-offs"
-          value={form.bridgeApiUrl}
-          onUpdate={handleChange('bridgeApiUrl')}
-        />
-        <TextInput
-          label="Bridge API key"
-          type={showBridgeKey ? 'text' : 'password'}
-          value={form.bridgeApiKey}
-          onUpdate={handleChange('bridgeApiKey')}
-          endContent={(
-            <Button
-              view="flat"
-              size="s"
-              onClick={() => setShowBridgeKey((prev) => !prev)}
-              title={showBridgeKey ? 'Hide' : 'Show'}
-            >
-              <Icon data={showBridgeKey ? EyeSlash : Eye} size={16} />
-            </Button>
-          )}
-        />
-      </div>
-      <Button view="action" size="l" type="submit" width="max">
-        Save
-      </Button>
-    </form>
-    <div className={style.codes}>
-      <Button view="action" size="m" onClick={() => setIsCodeDialogOpen(true)}>
-        Add code
-      </Button>
-      <div className={style.codesList}>
-        {Object.entries(projectDict).map(([code, label]) => (
-          <button
-            key={code}
-            type="button"
-            className={style.codesItem}
-            onClick={() => setCodeToRemove(code)}
-          >
-            {code}: {label}
-          </button>
-        ))}
-      </div>
-    </div>
-    </div>
-    <Dialog open={isCodeDialogOpen} onClose={() => setIsCodeDialogOpen(false)}>
-      <DialogHeader caption="Add code" />
-      <DialogBody>
-        <div className={style.codeForm}>
-          <TextInput
-            label="Code"
-            value={codeForm.code}
-            onUpdate={(code) => setCodeForm((prev) => ({ ...prev, code }))}
-          />
-          <TextInput
-            label="Label"
-            value={codeForm.label}
-            onUpdate={(label) => setCodeForm((prev) => ({ ...prev, label }))}
-          />
+          </section>
         </div>
-      </DialogBody>
-      <DialogFooter
-        onClickButtonCancel={() => setIsCodeDialogOpen(false)}
-        onClickButtonApply={handleAddCode}
-        textButtonApply="Add"
-        textButtonCancel="Cancel"
-        propsButtonApply={{ disabled: !codeForm.code || !codeForm.label }}
-      />
-    </Dialog>
-    <Dialog open={!!codeToRemove} onClose={() => setCodeToRemove(null)}>
-      <DialogHeader caption="Remove code" />
-      <DialogBody>
-        Удалить {codeToRemove}: {codeToRemove && projectDict[codeToRemove]} из списка кодов проектов?
-      </DialogBody>
-      <DialogFooter
-        onClickButtonCancel={() => setCodeToRemove(null)}
-        onClickButtonApply={handleRemoveCode}
-        textButtonApply="Remove"
-        textButtonCancel="Cancel"
-      />
-    </Dialog>
+      </div>
+
+      <Dialog open={isCodeDialogOpen} onClose={() => setIsCodeDialogOpen(false)}>
+        <DialogHeader caption="Добавить код" />
+        <DialogBody>
+          <div className={style.codeForm}>
+            <TextInput
+              label="Код"
+              placeholder="ID проекта в GitLab"
+              value={codeForm.code}
+              onUpdate={(code) => setCodeForm((prev) => ({ ...prev, code }))}
+              validationState={isDuplicateCode ? 'invalid' : undefined}
+              errorMessage={isDuplicateCode ? 'Такой код уже есть' : undefined}
+            />
+            <TextInput
+              label="Название"
+              placeholder="Название проекта в отчёте"
+              value={codeForm.label}
+              onUpdate={(label) => setCodeForm((prev) => ({ ...prev, label }))}
+            />
+          </div>
+        </DialogBody>
+        <DialogFooter
+          onClickButtonCancel={() => setIsCodeDialogOpen(false)}
+          onClickButtonApply={handleAddCode}
+          textButtonApply="Добавить"
+          textButtonCancel="Отмена"
+          propsButtonApply={{ disabled: !codeForm.code || !codeForm.label || isDuplicateCode }}
+        />
+      </Dialog>
+
+      <Dialog open={!!codeToRemove} onClose={() => setCodeToRemove(null)}>
+        <DialogHeader caption="Удалить код" />
+        <DialogBody>
+          Удалить {codeToRemove}: {codeToRemove && projectDict[codeToRemove]} из списка кодов проектов?
+        </DialogBody>
+        <DialogFooter
+          onClickButtonCancel={() => setCodeToRemove(null)}
+          onClickButtonApply={handleRemoveCode}
+          textButtonApply="Удалить"
+          textButtonCancel="Отмена"
+          propsButtonApply={{ view: 'outlined-danger' }}
+        />
+      </Dialog>
     </>
   )
 }

@@ -21,8 +21,23 @@ export const store = configureStore({
     ),
 });
 
+let persistedReport = store.getState().report;
+
 store.subscribe(() => {
-  localStorage.setItem('report', JSON.stringify(store.getState().report));
+  const { report } = store.getState();
+
+  // API cache updates fire on every request — only touch storage when the slice really changed
+  if (report === persistedReport) {
+    return;
+  }
+
+  persistedReport = report;
+
+  try {
+    localStorage.setItem('report', JSON.stringify(report));
+  } catch {
+    // ignore write failures
+  }
 });
 
 export type RootState = ReturnType<typeof store.getState>;

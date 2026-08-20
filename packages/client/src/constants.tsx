@@ -4,33 +4,34 @@ import type { KeyType } from '@reports/shared';
 import { RowData } from './hocs/with-table-sorting';
 import reportStyle from './components/report/report.module.css';
 
-export const options = [
-  { value: '1', content: 'January' },
-  { value: '2', content: 'February' },
-  { value: '3', content: 'March' },
-  { value: '4', content: 'April' },
-  { value: '5', content: 'May' },
-  { value: '6', content: 'June' },
-  { value: '7', content: 'July' },
-  { value: '8', content: 'August' },
-  { value: '9', content: 'September' },
-  { value: '10', content: 'October' },
-  { value: '11', content: 'November' },
-  { value: '12', content: 'December' },
+export const months = [
+  { value: '1', content: 'Январь' },
+  { value: '2', content: 'Февраль' },
+  { value: '3', content: 'Март' },
+  { value: '4', content: 'Апрель' },
+  { value: '5', content: 'Май' },
+  { value: '6', content: 'Июнь' },
+  { value: '7', content: 'Июль' },
+  { value: '8', content: 'Август' },
+  { value: '9', content: 'Сентябрь' },
+  { value: '10', content: 'Октябрь' },
+  { value: '11', content: 'Ноябрь' },
+  { value: '12', content: 'Декабрь' },
 ];
+
 export const years = [
   { value: '2025', content: '2025' },
   { value: '2026', content: '2026' },
 ];
 
 export const fields: Record<KeyType, string> = {
-  allDays: 'All days',
-  holidays: 'Holidays',
-  weekends: 'Weekends',
-  offDays: 'Off days',
-  shortDays: 'Short days',
-  workDays: 'Work days',
-  hours: 'Hours'
+  allDays: 'Всего дней',
+  holidays: 'Праздники',
+  weekends: 'Выходные',
+  offDays: 'Отгулы',
+  shortDays: 'Короткие дни',
+  workDays: 'Рабочие дни',
+  hours: 'Норма часов'
 };
 
 const statusThemes: Record<string, LabelProps['theme']> = {
@@ -55,5 +56,6 @@ export const columns: TableColumnConfig<RowData>[] = [
     align: 'end',
     className: reportStyle.timeCell,
     meta: { sort: true },
+    template: ({ time }) => (time > 0 ? time : '—'),
   },
 ];
