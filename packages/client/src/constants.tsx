@@ -39,12 +39,13 @@ const statusThemes: Record<string, LabelProps['theme']> = {
   'В работе': 'info',
 };
 
-export const columns: TableColumnConfig<RowData>[] = [
+export const getColumns = (isMobile: boolean): TableColumnConfig<RowData>[] => [
   { id: 'name', name: 'Наименование задачи', align: 'start', meta: { sort: true } },
   {
     id: 'status',
     name: 'Статус задачи',
     align: 'start',
+    width: isMobile ? 110 : 130,
     meta: { sort: true },
     template: ({ status }) => (
       <Label theme={statusThemes[status] ?? 'normal'}>{status}</Label>
@@ -54,6 +55,7 @@ export const columns: TableColumnConfig<RowData>[] = [
     id: 'time',
     name: 'Часы',
     align: 'end',
+    width: isMobile ? 56 : 70,
     className: reportStyle.timeCell,
     meta: { sort: true },
     template: ({ time }) => (time > 0 ? time : '—'),

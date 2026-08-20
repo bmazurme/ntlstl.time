@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, Icon, Text, Tooltip, useToaster } from '@gravity-ui/uikit';
 import { ArrowsRotateLeft, FileArrowDown, ListCheck, PaperPlane } from '@gravity-ui/icons';
 import type { MonthKeyType } from '@reports/shared';
 
-import { columns } from '../../constants';
+import { getColumns } from '../../constants';
 import MyTable, { RowData } from '../../hocs/with-table-sorting';
 import { reportSelector, settingsSelector } from '../../store';
 import { useGetCountsQuery, useGetReportsQuery, usePushReportToBridgeMutation } from '../../store/api';
 import { useAppSelector } from '../../hooks';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { exportReport } from '../../utils/export-report';
 import { describeError } from '../../utils/describe-error';
 import { EmptyState } from '../state';
@@ -24,6 +25,8 @@ function Report({ report, offDays }: { report: RowData[]; offDays: number }) {
   const { refetch: refetchReports, isFetching: isReportsFetching } = useGetReportsQuery();
   const [pushReportToBridge, { isLoading: isPushing }] = usePushReportToBridgeMutation();
   const [isExporting, setIsExporting] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 640px)');
+  const columns = useMemo(() => getColumns(isMobile), [isMobile]);
 
   const isRefreshing = isCountsFetching || isReportsFetching;
   const trackedRows = report.filter((item) => item.time > 0);
@@ -154,6 +157,7 @@ function Report({ report, offDays }: { report: RowData[]; offDays: number }) {
             columns={columns}
             width="max"
             verticalAlign="middle"
+            wordWrap
             edgePadding
           />
           <div className={reportStyle.summary}>
