@@ -14,6 +14,7 @@ const defaultSettings: SettingsType = {
   company: '',
   bridgeApiUrl: '',
   bridgeApiKey: '',
+  bridgeRefreshToken: '',
 };
 
 export const getSettings = (): SettingsType => {

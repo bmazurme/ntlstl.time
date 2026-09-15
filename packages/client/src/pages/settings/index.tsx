@@ -10,6 +10,9 @@ import { useAppDispatch, useAppSelector } from '../../hooks';
 import { useDocumentTitle } from '../../hooks/use-document-title';
 import { describeError } from '../../utils/describe-error';
 import PageHeader from '../../components/page-header';
+import TrackedProjectsSection from './tracked-projects-section';
+import DictionarySection from './dictionary-section';
+import CommentTemplatesSection from './comment-templates-section';
 
 import style from './settings.module.css';
 
@@ -21,6 +24,7 @@ function Settings() {
   const [syncedSettings, setSyncedSettings] = useState(settings);
   const [showToken, setShowToken] = useState(false);
   const [showBridgeKey, setShowBridgeKey] = useState(false);
+  const [showBridgeRefreshToken, setShowBridgeRefreshToken] = useState(false);
   const [setSettingsRequest, { isLoading: isSaving }] = useSetSettingsMutation();
 
   useDocumentTitle('Настройки');
@@ -220,6 +224,24 @@ function Settings() {
                     </Button>
                   )}
                 />
+                <TextInput
+                  label="Bridge refresh token"
+                  type={showBridgeRefreshToken ? 'text' : 'password'}
+                  value={form.bridgeRefreshToken}
+                  onUpdate={handleChange('bridgeRefreshToken')}
+                  autoComplete="off"
+                  note="Значение cookie bridgeRefreshToken из браузера после входа в bridge — нужно для Subscription (push/pull через bridge Storage)"
+                  endContent={(
+                    <Button
+                      view="flat"
+                      size="s"
+                      onClick={() => setShowBridgeRefreshToken((prev) => !prev)}
+                      aria-label={showBridgeRefreshToken ? 'Скрыть токен' : 'Показать токен'}
+                    >
+                      <Icon data={showBridgeRefreshToken ? EyeSlash : Eye} size={16} />
+                    </Button>
+                  )}
+                />
               </div>
             </section>
 
@@ -279,6 +301,10 @@ function Settings() {
               Добавить код
             </Button>
           </section>
+
+          <TrackedProjectsSection />
+          <DictionarySection />
+          <CommentTemplatesSection />
         </div>
       </div>
 

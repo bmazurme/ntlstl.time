@@ -6,6 +6,23 @@ import { handleCounts, handleAddOffDay, handleRemoveOffDay, handleImportDayOffs 
 import { handleReport, handlePushReport } from './reports/handler';
 import { handleGetSettings, handleSetSettings } from './settings/handler';
 import { handleGetProjectDict, handleAddProjectCode, handleRemoveProjectCode } from './reports/project-dict-handler';
+import {
+  handleListSubscriptionIssues,
+  handleInitSubscriptionIssue,
+  handlePushSubscriptionIssue,
+  handlePullSubscriptionIssue,
+  handlePublishSubscriptionIssue,
+  handleGetSubscriptionIssueTime,
+} from './subscription/handler';
+import {
+  handleGetSubscriptionConfig,
+  handleAddTrackedProject,
+  handleRemoveTrackedProject,
+  handleAddDictionaryEntry,
+  handleRemoveDictionaryEntry,
+  handleAddCommentTemplate,
+  handleRemoveCommentTemplate,
+} from './subscription/config-handler';
 import { setupProxy } from './utils/setup-proxy';
 
 setupProxy();
@@ -27,6 +44,20 @@ app.post('/api/settings', handleSetSettings);
 app.get('/api/project-dict', handleGetProjectDict);
 app.post('/api/project-dict', handleAddProjectCode);
 app.delete('/api/project-dict/:code', handleRemoveProjectCode);
+
+app.get('/api/subscription/issues', handleListSubscriptionIssues);
+app.post('/api/subscription/issues/:projectId/:iid/init', handleInitSubscriptionIssue);
+app.post('/api/subscription/issues/:projectId/:iid/push', handlePushSubscriptionIssue);
+app.post('/api/subscription/issues/:projectId/:iid/pull', handlePullSubscriptionIssue);
+app.post('/api/subscription/issues/:projectId/:iid/publish', handlePublishSubscriptionIssue);
+app.get('/api/subscription/issues/:projectId/:iid/time', handleGetSubscriptionIssueTime);
+app.get('/api/subscription/config', handleGetSubscriptionConfig);
+app.post('/api/subscription/config/tracked-projects', handleAddTrackedProject);
+app.delete('/api/subscription/config/tracked-projects/:gitlabProjectId', handleRemoveTrackedProject);
+app.post('/api/subscription/config/dictionary', handleAddDictionaryEntry);
+app.delete('/api/subscription/config/dictionary/:key', handleRemoveDictionaryEntry);
+app.post('/api/subscription/config/comment-templates', handleAddCommentTemplate);
+app.delete('/api/subscription/config/comment-templates/:id', handleRemoveCommentTemplate);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to the Express + TypeScript Server!' });

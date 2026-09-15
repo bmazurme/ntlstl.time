@@ -1,5 +1,19 @@
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
-import type { DateType, ProjectDictType, PushReportPayload, ReportType, SettingsType, StreamEvent } from '@reports/shared';
+import type {
+  CommentTemplateType,
+  DateType,
+  DictionaryEntryType,
+  ProjectDictType,
+  PushReportPayload,
+  ReportType,
+  SettingsType,
+  StreamEvent,
+  SubscriptionConfigType,
+  SubscriptionIssueType,
+  SubscriptionPublishPayload,
+  SubscriptionStateEntryType,
+  TrackedProjectType,
+} from '@reports/shared';
 
 import baseQuery from '../../base-query';
 
@@ -20,7 +34,7 @@ const unwrap = <T>(fallbackMessage: string) => (response: StreamEvent): T => {
 const reportsApi = createApi({
   reducerPath: 'reportsApi',
   baseQuery: baseQueryWithRetry,
-  tagTypes: ['Counts', 'Reports', 'Settings', 'ProjectDict'],
+  tagTypes: ['Counts', 'Reports', 'Settings', 'ProjectDict', 'SubscriptionIssues', 'SubscriptionConfig'],
   endpoints: (builder) => ({
     getCounts: builder.query<DateType, string>({
       query: (year) => `counts/${year}`,
@@ -101,6 +115,74 @@ const reportsApi = createApi({
       transformResponse: unwrap<ProjectDictType>('Не удалось удалить код проекта'),
       invalidatesTags: ['ProjectDict'],
     }),
+    getSubscriptionIssues: builder.query<SubscriptionIssueType[], void>({
+      query: () => 'subscription/issues',
+      transformResponse: unwrap<SubscriptionIssueType[]>('Не удалось загрузить список задач'),
+      providesTags: ['SubscriptionIssues'],
+    }),
+    getSubscriptionIssueTime: builder.query<{ humanTimeEstimate: string | null }, { projectId: number; iid: string }>({
+      query: ({ projectId, iid }) => `subscription/issues/${projectId}/${iid}/time`,
+      transformResponse: unwrap<{ humanTimeEstimate: string | null }>('Не удалось получить текущую оценку времени'),
+    }),
+    initSubscriptionIssue: builder.mutation<SubscriptionStateEntryType, { projectId: number; iid: string }>({
+      query: ({ projectId, iid }) => ({ url: `subscription/issues/${projectId}/${iid}/init`, method: 'POST' }),
+      transformResponse: unwrap<SubscriptionStateEntryType>('Не удалось создать ветку'),
+      invalidatesTags: ['SubscriptionIssues'],
+    }),
+    pushSubscriptionIssue: builder.mutation<SubscriptionStateEntryType, { projectId: number; iid: string }>({
+      query: ({ projectId, iid }) => ({ url: `subscription/issues/${projectId}/${iid}/push`, method: 'POST' }),
+      transformResponse: unwrap<SubscriptionStateEntryType>('Не удалось отправить посылку в bridge'),
+      invalidatesTags: ['SubscriptionIssues'],
+    }),
+    pullSubscriptionIssue: builder.mutation<SubscriptionStateEntryType, { projectId: number; iid: string }>({
+      query: ({ projectId, iid }) => ({ url: `subscription/issues/${projectId}/${iid}/pull`, method: 'POST' }),
+      transformResponse: unwrap<SubscriptionStateEntryType>('Не удалось получить посылку из bridge'),
+      invalidatesTags: ['SubscriptionIssues'],
+    }),
+    publishSubscriptionIssue: builder.mutation<SubscriptionStateEntryType, { projectId: number; iid: string; payload: SubscriptionPublishPayload }>({
+      query: ({ projectId, iid, payload }) => ({
+        url: `subscription/issues/${projectId}/${iid}/publish`,
+        method: 'POST',
+        body: payload,
+      }),
+      transformResponse: unwrap<SubscriptionStateEntryType>('Не удалось опубликовать результат'),
+      invalidatesTags: ['SubscriptionIssues'],
+    }),
+    getSubscriptionConfig: builder.query<SubscriptionConfigType, void>({
+      query: () => 'subscription/config',
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось загрузить настройки подписки'),
+      providesTags: ['SubscriptionConfig'],
+    }),
+    addTrackedProject: builder.mutation<SubscriptionConfigType, TrackedProjectType>({
+      query: (project) => ({ url: 'subscription/config/tracked-projects', method: 'POST', body: project }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось добавить репозиторий'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    removeTrackedProject: builder.mutation<SubscriptionConfigType, { gitlabProjectId: string }>({
+      query: ({ gitlabProjectId }) => ({ url: `subscription/config/tracked-projects/${gitlabProjectId}`, method: 'DELETE' }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось удалить репозиторий'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    addDictionaryEntry: builder.mutation<SubscriptionConfigType, DictionaryEntryType>({
+      query: (entry) => ({ url: 'subscription/config/dictionary', method: 'POST', body: entry }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось добавить запись словаря'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    removeDictionaryEntry: builder.mutation<SubscriptionConfigType, { key: string }>({
+      query: ({ key }) => ({ url: `subscription/config/dictionary/${encodeURIComponent(key)}`, method: 'DELETE' }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось удалить запись словаря'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    addCommentTemplate: builder.mutation<SubscriptionConfigType, CommentTemplateType>({
+      query: (template) => ({ url: 'subscription/config/comment-templates', method: 'POST', body: template }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось добавить шаблон'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    removeCommentTemplate: builder.mutation<SubscriptionConfigType, { id: string }>({
+      query: ({ id }) => ({ url: `subscription/config/comment-templates/${id}`, method: 'DELETE' }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось удалить шаблон'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
   }),
 });
 
@@ -116,5 +198,18 @@ export const {
   useGetProjectDictQuery,
   useAddProjectCodeMutation,
   useRemoveProjectCodeMutation,
+  useGetSubscriptionIssuesQuery,
+  useGetSubscriptionIssueTimeQuery,
+  useInitSubscriptionIssueMutation,
+  usePushSubscriptionIssueMutation,
+  usePullSubscriptionIssueMutation,
+  usePublishSubscriptionIssueMutation,
+  useGetSubscriptionConfigQuery,
+  useAddTrackedProjectMutation,
+  useRemoveTrackedProjectMutation,
+  useAddDictionaryEntryMutation,
+  useRemoveDictionaryEntryMutation,
+  useAddCommentTemplateMutation,
+  useRemoveCommentTemplateMutation,
 } = reportsApi;
 export default reportsApi;

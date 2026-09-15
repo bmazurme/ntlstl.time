@@ -42,6 +42,7 @@ export type SettingsType = {
   company: string;
   bridgeApiUrl: string;
   bridgeApiKey: string;
+  bridgeRefreshToken: string;
 };
 
 export type DayOffsImportType = {
@@ -76,6 +77,8 @@ export type ResType = {
   id: string;
   iid: string;
   title: string;
+  description?: string;
+  web_url?: string;
   project_id: number;
   state: string;
   created_at: string;
@@ -95,3 +98,60 @@ export type ResultType = {
   created: string;
   timeStats: string;
 }
+
+export type TrackedProjectType = {
+  gitlabProjectId: string;
+  path: string;
+  baseBranch?: string;
+  include?: string[];
+  exclude?: string[];
+};
+
+export type DictionaryEntryType = {
+  key: string;
+  value: string;
+};
+
+export type CommentTemplateType = {
+  id: string;
+  title: string;
+  body: string;
+};
+
+export type SubscriptionConfigType = {
+  trackedProjects: TrackedProjectType[];
+  dictionary: DictionaryEntryType[];
+  commentTemplates: CommentTemplateType[];
+};
+
+export type SubscriptionStepType = 'init' | 'pushed' | 'pulled' | 'published';
+
+export type SubscriptionStateEntryType = {
+  step: SubscriptionStepType;
+  branch?: string;
+  parcelId?: number;
+  pushedAt?: string;
+  pulledAt?: string;
+  publishedAt?: string;
+};
+
+export type SubscriptionIssueType = {
+  id: string;
+  iid: string;
+  projectId: number;
+  projectName: string;
+  title: string;
+  description: string;
+  webUrl: string;
+  timeEstimate: string;
+  state: string;
+  status: string;
+  tracked: boolean;
+  subscription?: SubscriptionStateEntryType;
+};
+
+export type SubscriptionPublishPayload = {
+  templateId?: string;
+  comment?: string;
+  timeEstimate?: string;
+};

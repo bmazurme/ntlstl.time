@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { Text, Button, Icon, Tooltip } from '@gravity-ui/uikit';
 import {
-  House, Calendar as CalendarIcon, Gear, Moon, Sun, ChevronsLeft, ChevronsRight, Xmark,
+  House, Calendar as CalendarIcon, ListCheck, Gear, Moon, Sun, ChevronsLeft, ChevronsRight, Xmark,
 } from '@gravity-ui/icons';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -14,6 +14,7 @@ import style from './sidebar.module.css';
 const links = [
   { to: '/', label: 'Отчёт', icon: House },
   { to: '/calendar', label: 'Календарь', icon: CalendarIcon },
+  { to: '/subscription', label: 'Подписка', icon: ListCheck },
   { to: '/settings', label: 'Настройки', icon: Gear },
 ];
 

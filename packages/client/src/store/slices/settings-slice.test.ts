@@ -16,6 +16,7 @@ describe('settings slice', () => {
       company: '',
       bridgeApiUrl: '',
       bridgeApiKey: '',
+      bridgeRefreshToken: '',
     });
   });
 
@@ -28,6 +29,7 @@ describe('settings slice', () => {
       company: 'ACME',
       bridgeApiUrl: 'http://localhost:3002/api/v1/time/export/day-offs',
       bridgeApiKey: 'dev-key',
+      bridgeRefreshToken: 'dev-refresh-token',
     };
 
     const state = settingsReducer(initialStateSettings, setSettings(next));

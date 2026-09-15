@@ -15,6 +15,7 @@ import './App.css';
 // Split off the routes that pull heavy dependencies (date pickers, dialogs)
 const CalendarPage = lazy(() => import('./pages/calendar'));
 const Settings = lazy(() => import('./pages/settings'));
+const Subscription = lazy(() => import('./pages/subscription'));
 
 function AppLayout() {
   const dispatch = useAppDispatch();
@@ -106,6 +107,14 @@ function AppLayout() {
         element={(
           <Suspense fallback={<PageSkeleton />}>
             <Settings />
+          </Suspense>
+        )}
+      />
+      <Route
+        path="/subscription"
+        element={(
+          <Suspense fallback={<PageSkeleton />}>
+            <Subscription />
           </Suspense>
         )}
       />
