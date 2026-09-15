@@ -151,6 +151,18 @@ function IssueStepper({ issue }: { issue: SubscriptionIssueType }) {
       {nextIndex >= STEP_LABELS.length && (
         <Text variant="body-2" color="positive">Пайплайн по задаче завершён.</Text>
       )}
+
+      {currentIndex >= 1 && (
+        <div className={style.stepAction}>
+          <Text variant="body-2" color="secondary">
+            Внесли правки после ревью? Отправьте новую версию посылки — пайплайн вернётся на шаг pull.
+          </Text>
+          <Button view="outlined" size="m" onClick={handlePush} loading={isPushing} disabled={!!disabledReason} title={disabledReason}>
+            <Icon data={ArrowUpFromLine} size={16} />
+            Отправить повторно
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

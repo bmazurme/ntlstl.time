@@ -22,6 +22,10 @@ export {
   useRemoveTrackedProjectMutation,
   useAddDictionaryEntryMutation,
   useRemoveDictionaryEntryMutation,
+  useUpdateDictionaryEntryMutation,
+  useImportDictionaryEntriesMutation,
   useAddCommentTemplateMutation,
   useRemoveCommentTemplateMutation,
+  useSetEncryptionSettingsMutation,
+  useGenerateEncryptionKeyPairMutation,
 } from './reports-api/index';

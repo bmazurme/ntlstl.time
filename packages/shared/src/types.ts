@@ -118,10 +118,17 @@ export type CommentTemplateType = {
   body: string;
 };
 
+export type EncryptionSettingsType = {
+  enabled: boolean;
+  publicKey: string;
+  privateKey: string;
+};
+
 export type SubscriptionConfigType = {
   trackedProjects: TrackedProjectType[];
   dictionary: DictionaryEntryType[];
   commentTemplates: CommentTemplateType[];
+  encryption: EncryptionSettingsType;
 };
 
 export type SubscriptionStepType = 'init' | 'pushed' | 'pulled' | 'published';
@@ -133,6 +140,7 @@ export type SubscriptionStateEntryType = {
   pushedAt?: string;
   pulledAt?: string;
   publishedAt?: string;
+  encrypted?: boolean;
 };
 
 export type SubscriptionIssueType = {

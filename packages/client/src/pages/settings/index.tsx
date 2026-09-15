@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import {
   Button, TextInput, Text, Icon, Dialog, DialogHeader, DialogBody, DialogFooter, useToaster,
+  TabProvider, TabList, Tab, TabPanel,
 } from '@gravity-ui/uikit';
-import { Eye, EyeSlash, Plus, TrashBin } from '@gravity-ui/icons';
+import { CodeFork, Eye, EyeSlash, Gear, Plus, TrashBin } from '@gravity-ui/icons';
 
 import { settingsSelector, setSettings, type SettingsState } from '../../store';
 import { useSetSettingsMutation, useGetProjectDictQuery, useAddProjectCodeMutation, useRemoveProjectCodeMutation } from '../../store/api';
@@ -13,6 +14,7 @@ import PageHeader from '../../components/page-header';
 import TrackedProjectsSection from './tracked-projects-section';
 import DictionarySection from './dictionary-section';
 import CommentTemplatesSection from './comment-templates-section';
+import EncryptionSection from './encryption-section';
 
 import style from './settings.module.css';
 
@@ -26,6 +28,7 @@ function Settings() {
   const [showBridgeKey, setShowBridgeKey] = useState(false);
   const [showBridgeRefreshToken, setShowBridgeRefreshToken] = useState(false);
   const [setSettingsRequest, { isLoading: isSaving }] = useSetSettingsMutation();
+  const [activeTab, setActiveTab] = useState('general');
 
   useDocumentTitle('Настройки');
 
@@ -125,7 +128,13 @@ function Settings() {
           title="Настройки"
           description="Подключение к GitLab, реквизиты отчёта и интеграция с bridge"
         />
-        <div className={style.page}>
+        <TabProvider value={activeTab} onUpdate={setActiveTab}>
+          <TabList className={style.tabs}>
+            <Tab value="general" icon={<Icon data={Gear} size={16} />} label={{ content: 'Основные' }} />
+            <Tab value="subscription" icon={<Icon data={CodeFork} size={16} />} label={{ content: 'Subscription' }} />
+          </TabList>
+
+          <TabPanel value="general" className={style.page}>
           <form className={style.form} onSubmit={handleSubmit}>
             <section className={style.section}>
               <div className={style.sectionHead}>
@@ -301,11 +310,15 @@ function Settings() {
               Добавить код
             </Button>
           </section>
+          </TabPanel>
 
-          <TrackedProjectsSection />
-          <DictionarySection />
-          <CommentTemplatesSection />
-        </div>
+          <TabPanel value="subscription" className={style.page}>
+            <TrackedProjectsSection />
+            <DictionarySection />
+            <CommentTemplatesSection />
+            <EncryptionSection />
+          </TabPanel>
+        </TabProvider>
       </div>
 
       <Dialog open={isCodeDialogOpen} onClose={() => setIsCodeDialogOpen(false)}>

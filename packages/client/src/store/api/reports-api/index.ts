@@ -3,6 +3,7 @@ import type {
   CommentTemplateType,
   DateType,
   DictionaryEntryType,
+  EncryptionSettingsType,
   ProjectDictType,
   PushReportPayload,
   ReportType,
@@ -173,6 +174,20 @@ const reportsApi = createApi({
       transformResponse: unwrap<SubscriptionConfigType>('Не удалось удалить запись словаря'),
       invalidatesTags: ['SubscriptionConfig'],
     }),
+    updateDictionaryEntry: builder.mutation<SubscriptionConfigType, { oldKey: string; entry: DictionaryEntryType }>({
+      query: ({ oldKey, entry }) => ({
+        url: `subscription/config/dictionary/${encodeURIComponent(oldKey)}`,
+        method: 'PUT',
+        body: entry,
+      }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось сохранить запись словаря'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    importDictionaryEntries: builder.mutation<SubscriptionConfigType, { entries: DictionaryEntryType[] }>({
+      query: (body) => ({ url: 'subscription/config/dictionary/import', method: 'POST', body }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось импортировать словарь'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
     addCommentTemplate: builder.mutation<SubscriptionConfigType, CommentTemplateType>({
       query: (template) => ({ url: 'subscription/config/comment-templates', method: 'POST', body: template }),
       transformResponse: unwrap<SubscriptionConfigType>('Не удалось добавить шаблон'),
@@ -181,6 +196,16 @@ const reportsApi = createApi({
     removeCommentTemplate: builder.mutation<SubscriptionConfigType, { id: string }>({
       query: ({ id }) => ({ url: `subscription/config/comment-templates/${id}`, method: 'DELETE' }),
       transformResponse: unwrap<SubscriptionConfigType>('Не удалось удалить шаблон'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    setEncryptionSettings: builder.mutation<SubscriptionConfigType, EncryptionSettingsType>({
+      query: (encryption) => ({ url: 'subscription/config/encryption', method: 'PUT', body: encryption }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось сохранить настройки шифрования'),
+      invalidatesTags: ['SubscriptionConfig'],
+    }),
+    generateEncryptionKeyPair: builder.mutation<SubscriptionConfigType, void>({
+      query: () => ({ url: 'subscription/config/encryption/generate', method: 'POST' }),
+      transformResponse: unwrap<SubscriptionConfigType>('Не удалось сгенерировать пару ключей'),
       invalidatesTags: ['SubscriptionConfig'],
     }),
   }),
@@ -209,7 +234,11 @@ export const {
   useRemoveTrackedProjectMutation,
   useAddDictionaryEntryMutation,
   useRemoveDictionaryEntryMutation,
+  useUpdateDictionaryEntryMutation,
+  useImportDictionaryEntriesMutation,
   useAddCommentTemplateMutation,
   useRemoveCommentTemplateMutation,
+  useSetEncryptionSettingsMutation,
+  useGenerateEncryptionKeyPairMutation,
 } = reportsApi;
 export default reportsApi;

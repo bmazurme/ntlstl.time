@@ -20,7 +20,7 @@ function formatDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
 
-  return `${year}${month}${day}`;
+  return `${day}.${month}.${year}`;
 }
 
 /** Git branch names can't contain spaces, `..`, `~^:?*[\`, `@{`, or start/end with `.`/`.lock`. */
@@ -28,7 +28,7 @@ function sanitizeUsername(username: string): string {
   return username.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'user';
 }
 
-/** Mask: `${username}-${YYYYMMDD}-${iid}`, e.g. `bmazur-20260914-42`. */
+/** Mask: `${username}-${DD.MM.YYYY}-${iid}`, e.g. `mazur-15.09.2026-123`. */
 export function buildBranchName(username: string, iid: string | number, date = new Date()): string {
   return `${sanitizeUsername(username)}-${formatDate(date)}-${iid}`;
 }

@@ -20,8 +20,12 @@ import {
   handleRemoveTrackedProject,
   handleAddDictionaryEntry,
   handleRemoveDictionaryEntry,
+  handleUpdateDictionaryEntry,
+  handleImportDictionary,
   handleAddCommentTemplate,
   handleRemoveCommentTemplate,
+  handleSetEncryptionSettings,
+  handleGenerateEncryptionKeyPair,
 } from './subscription/config-handler';
 import { setupProxy } from './utils/setup-proxy';
 
@@ -55,9 +59,13 @@ app.get('/api/subscription/config', handleGetSubscriptionConfig);
 app.post('/api/subscription/config/tracked-projects', handleAddTrackedProject);
 app.delete('/api/subscription/config/tracked-projects/:gitlabProjectId', handleRemoveTrackedProject);
 app.post('/api/subscription/config/dictionary', handleAddDictionaryEntry);
+app.post('/api/subscription/config/dictionary/import', handleImportDictionary);
+app.put('/api/subscription/config/dictionary/:key', handleUpdateDictionaryEntry);
 app.delete('/api/subscription/config/dictionary/:key', handleRemoveDictionaryEntry);
 app.post('/api/subscription/config/comment-templates', handleAddCommentTemplate);
 app.delete('/api/subscription/config/comment-templates/:id', handleRemoveCommentTemplate);
+app.put('/api/subscription/config/encryption', handleSetEncryptionSettings);
+app.post('/api/subscription/config/encryption/generate', handleGenerateEncryptionKeyPair);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to the Express + TypeScript Server!' });

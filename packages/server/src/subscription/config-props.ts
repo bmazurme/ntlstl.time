@@ -1,7 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import type { CommentTemplateType, DictionaryEntryType, SubscriptionConfigType, TrackedProjectType } from '@reports/shared';
+import type { CommentTemplateType, DictionaryEntryType, EncryptionSettingsType, SubscriptionConfigType, TrackedProjectType } from '@reports/shared';
+
+import { generateKeyPair } from './encryption';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const configPath = join(__dirname, 'subscription-config.json');
@@ -10,6 +12,7 @@ const defaultConfig: SubscriptionConfigType = {
   trackedProjects: [],
   dictionary: [],
   commentTemplates: [],
+  encryption: { enabled: false, publicKey: '', privateKey: '' },
 };
 
 const save = (config: SubscriptionConfigType): SubscriptionConfigType => {
@@ -63,6 +66,30 @@ export const removeDictionaryEntry = (key: string): SubscriptionConfigType => {
   return save({ ...config, dictionary });
 };
 
+export const updateDictionaryEntry = (oldKey: string, entry: DictionaryEntryType): SubscriptionConfigType => {
+  const config = getSubscriptionConfig();
+  const dictionary = [
+    ...config.dictionary.filter((item) => item.key !== oldKey && item.key !== entry.key),
+    entry,
+  ];
+
+  return save({ ...config, dictionary });
+};
+
+/** Merges an imported list (e.g. a dictionary exported from bridge's Purge page) into the existing one, upserting by key. */
+export const importDictionaryEntries = (entries: DictionaryEntryType[]): SubscriptionConfigType => {
+  const config = getSubscriptionConfig();
+  const byKey = new Map(config.dictionary.map((item) => [item.key, item]));
+
+  for (const entry of entries) {
+    if (entry.key && entry.value) {
+      byKey.set(entry.key, entry);
+    }
+  }
+
+  return save({ ...config, dictionary: [...byKey.values()] });
+};
+
 export const addCommentTemplate = (template: CommentTemplateType): SubscriptionConfigType => {
   const config = getSubscriptionConfig();
   const commentTemplates = [...config.commentTemplates.filter((item) => item.id !== template.id), template];
@@ -75,4 +102,18 @@ export const removeCommentTemplate = (id: string): SubscriptionConfigType => {
   const commentTemplates = config.commentTemplates.filter((item) => item.id !== id);
 
   return save({ ...config, commentTemplates });
+};
+
+export const setEncryptionSettings = (encryption: EncryptionSettingsType): SubscriptionConfigType => {
+  const config = getSubscriptionConfig();
+
+  return save({ ...config, encryption });
+};
+
+/** Generates a fresh RSA key pair and stores it, leaving `enabled` untouched. */
+export const generateAndSaveKeyPair = (): SubscriptionConfigType => {
+  const config = getSubscriptionConfig();
+  const { publicKey, privateKey } = generateKeyPair();
+
+  return save({ ...config, encryption: { ...config.encryption, publicKey, privateKey } });
 };

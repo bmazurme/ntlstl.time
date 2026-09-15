@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Button, TextInput, Text, Icon, Dialog, DialogHeader, DialogBody, DialogFooter, useToaster,
 } from '@gravity-ui/uikit';
-import { Plus, TrashBin } from '@gravity-ui/icons';
+import { Pencil, Plus, TrashBin } from '@gravity-ui/icons';
 import type { CommentTemplateType } from '@reports/shared';
 
 import {
@@ -16,38 +16,58 @@ import style from './settings.module.css';
 
 const emptyForm = { title: '', body: '' };
 
+function bodyPreview(body: string): string {
+  const oneLine = body.replace(/\s+/g, ' ').trim();
+
+  return oneLine.length > 80 ? `${oneLine.slice(0, 80)}…` : oneLine;
+}
+
 function CommentTemplatesSection() {
   const toaster = useToaster();
   const { data: config } = useGetSubscriptionConfigQuery();
-  const [addCommentTemplate] = useAddCommentTemplateMutation();
+  const [addCommentTemplate, { isLoading: isSaving }] = useAddCommentTemplateMutation();
   const [removeCommentTemplate] = useRemoveCommentTemplateMutation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<CommentTemplateType | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [toRemove, setToRemove] = useState<CommentTemplateType | null>(null);
 
   const templates = config?.commentTemplates ?? [];
 
-  const handleAdd = async () => {
-    if (!form.title || !form.body) {
+  const openAddDialog = () => {
+    setEditingTemplate(null);
+    setForm(emptyForm);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (template: CommentTemplateType) => {
+    setEditingTemplate(template);
+    setForm({ title: template.title, body: template.body });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.body.trim()) {
       return;
     }
 
     const template: CommentTemplateType = {
-      id: crypto.randomUUID(),
-      title: form.title,
-      body: form.body,
+      id: editingTemplate?.id ?? crypto.randomUUID(),
+      title: form.title.trim(),
+      body: form.body.trim(),
     };
 
     setIsDialogOpen(false);
     setForm(emptyForm);
+    setEditingTemplate(null);
 
     try {
       await addCommentTemplate(template).unwrap();
     } catch (error) {
       toaster.add({
-        name: 'comment-template-add-error',
+        name: 'comment-template-save-error',
         theme: 'danger',
-        title: 'Не удалось добавить шаблон',
+        title: editingTemplate ? 'Не удалось сохранить шаблон' : 'Не удалось добавить шаблон',
         content: describeError(error),
         isClosable: true,
       });
@@ -93,7 +113,13 @@ function CommentTemplatesSection() {
           <ul className={style.codesList}>
             {templates.map((template) => (
               <li key={template.id} className={style.codesItem}>
-                <span className={style.codesLabel}>{template.title}</span>
+                <button type="button" className={style.templateRowButton} onClick={() => openEditDialog(template)}>
+                  <Text variant="body-2" className={style.rowTitle}>{template.title}</Text>
+                  <Text variant="caption-2" color="secondary" className={style.rowTitle}>{bodyPreview(template.body)}</Text>
+                </button>
+                <Button view="flat" size="s" onClick={() => openEditDialog(template)} aria-label={`Редактировать шаблон ${template.title}`}>
+                  <Icon data={Pencil} size={16} />
+                </Button>
                 <Button
                   view="flat"
                   size="s"
@@ -107,14 +133,14 @@ function CommentTemplatesSection() {
             ))}
           </ul>
         )}
-        <Button view="outlined" size="m" width="max" onClick={() => setIsDialogOpen(true)} className={style.codesAdd}>
+        <Button view="outlined" size="m" width="max" onClick={openAddDialog} className={style.codesAdd}>
           <Icon data={Plus} size={16} />
           Добавить шаблон
         </Button>
       </section>
 
       <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
-        <DialogHeader caption="Добавить шаблон комментария" />
+        <DialogHeader caption={editingTemplate ? 'Редактировать шаблон' : 'Добавить шаблон комментария'} />
         <DialogBody>
           <div className={style.codeForm}>
             <TextInput
@@ -139,10 +165,10 @@ function CommentTemplatesSection() {
         </DialogBody>
         <DialogFooter
           onClickButtonCancel={() => setIsDialogOpen(false)}
-          onClickButtonApply={handleAdd}
-          textButtonApply="Добавить"
+          onClickButtonApply={handleSave}
+          textButtonApply={editingTemplate ? 'Сохранить' : 'Добавить'}
           textButtonCancel="Отмена"
-          propsButtonApply={{ disabled: !form.title || !form.body }}
+          propsButtonApply={{ disabled: !form.title.trim() || !form.body.trim(), loading: isSaving }}
         />
       </Dialog>
 

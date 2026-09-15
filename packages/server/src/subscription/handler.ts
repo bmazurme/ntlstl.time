@@ -14,6 +14,7 @@ import { walkProjectFiles } from './walk';
 import { applyDictionary } from './dictionary';
 import { buildArchive, extractArchive } from './pack';
 import { uploadParcel, listParcels, downloadParcel } from './bridge-client';
+import { encryptBuffer, decryptBuffer } from './encryption';
 
 function sender(res: Response) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -37,8 +38,8 @@ async function withStream(res: Response, label: string, run: () => Promise<unkno
   }
 }
 
-function parcelName(projectId: string, iid: string): string {
-  return `${projectId}-${iid}.subscription.zip`;
+function parcelName(projectId: string, iid: string, encrypted: boolean): string {
+  return `${projectId}-${iid}.subscription.zip${encrypted ? '.enc' : ''}`;
 }
 
 function requireTrackedProject(projectId: string) {
@@ -102,7 +103,7 @@ export async function handlePushSubscriptionIssue(req: Request, res: Response) {
       throw new Error('Сначала выполните init — ветка ещё не создана');
     }
 
-    const { dictionary } = getSubscriptionConfig();
+    const { dictionary, encryption } = getSubscriptionConfig();
     const issue = await getIssue(projectId, iid);
     const relPaths = await walkProjectFiles(trackedProject);
     const files = relPaths.map((relPath) => ({
@@ -110,7 +111,7 @@ export async function handlePushSubscriptionIssue(req: Request, res: Response) {
       content: applyDictionary(readFileSync(join(trackedProject.path, relPath), 'utf-8'), dictionary, 'toRemote'),
     }));
 
-    const buffer = buildArchive(files, {
+    const archive = buildArchive(files, {
       issueId: issue.id,
       issueIid: issue.iid,
       issueTitle: applyDictionary(issue.title, dictionary, 'toRemote'),
@@ -120,9 +121,21 @@ export async function handlePushSubscriptionIssue(req: Request, res: Response) {
       createdAt: new Date().toISOString(),
     });
 
-    const stored = await uploadParcel(buffer, parcelName(projectId, iid));
+    const shouldEncrypt = encryption.enabled && !!encryption.publicKey;
 
-    return setIssueState(projectId, iid, { step: 'pushed', parcelId: stored.id, pushedAt: new Date().toISOString() });
+    if (encryption.enabled && !encryption.publicKey) {
+      throw new Error('Шифрование включено, но публичный ключ не задан — сгенерируйте пару ключей в Settings');
+    }
+
+    const buffer = shouldEncrypt ? encryptBuffer(archive, encryption.publicKey) : archive;
+    const stored = await uploadParcel(buffer, parcelName(projectId, iid, shouldEncrypt));
+
+    return setIssueState(projectId, iid, {
+      step: 'pushed',
+      parcelId: stored.id,
+      pushedAt: new Date().toISOString(),
+      encrypted: shouldEncrypt,
+    });
   });
 }
 
@@ -131,9 +144,10 @@ export async function handlePullSubscriptionIssue(req: Request, res: Response) {
 
   await withStream(res, 'Pull subscription issue', async () => {
     const trackedProject = requireTrackedProject(projectId);
-    const name = parcelName(projectId, iid);
+    const plainName = parcelName(projectId, iid, false);
+    const encryptedName = parcelName(projectId, iid, true);
     const parcels = (await listParcels())
-      .filter((parcel) => parcel.originalName === name)
+      .filter((parcel) => parcel.originalName === plainName || parcel.originalName === encryptedName)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const newest = parcels[0];
@@ -142,8 +156,15 @@ export async function handlePullSubscriptionIssue(req: Request, res: Response) {
       throw new Error('На bridge нет посылки для этой задачи — сначала выполните push из другого окружения');
     }
 
-    const buffer = await downloadParcel(newest.id);
-    const { dictionary } = getSubscriptionConfig();
+    const isEncrypted = newest.originalName === encryptedName;
+    const { dictionary, encryption } = getSubscriptionConfig();
+
+    if (isEncrypted && !encryption.privateKey) {
+      throw new Error('Посылка зашифрована, но приватный ключ не задан — вставьте его в Settings → Шифрование');
+    }
+
+    const downloaded = await downloadParcel(newest.id);
+    const buffer = isEncrypted ? decryptBuffer(downloaded, encryption.privateKey) : downloaded;
     const { files } = extractArchive(buffer);
     const projectRoot = resolve(trackedProject.path);
 
@@ -158,7 +179,7 @@ export async function handlePullSubscriptionIssue(req: Request, res: Response) {
       writeFileSync(destination, applyDictionary(file.content, dictionary, 'toLocal'), 'utf-8');
     }
 
-    return setIssueState(projectId, iid, { step: 'pulled', pulledAt: new Date().toISOString() });
+    return setIssueState(projectId, iid, { step: 'pulled', pulledAt: new Date().toISOString(), encrypted: isEncrypted });
   });
 }
 
